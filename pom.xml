@@ -349,6 +349,9 @@ Import-Package: \
  !org.apache.maven.*,\
  sun.misc;resolution:=optional,\
  *
+Require-Capability: \
+ osgi.extender;filter:="(osgi.extender=osgi.serviceloader.processor)",\
+ osgi.serviceloader;filter:="(osgi.serviceloader=org.bytedeco.javacpp.Loader$ResourceResolver)";resolution:=optional;cardinality:=multiple
           ]]></bnd>
             </configuration>
           </execution>

@@ -48,13 +48,16 @@ import java.util.Arrays;
 import java.util.Deque;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.WeakHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
 import org.bytedeco.javacpp.annotation.Cast;
 import org.bytedeco.javacpp.annotation.Name;
 import org.bytedeco.javacpp.annotation.Platform;
@@ -862,9 +865,9 @@ public class Loader {
         }
 
         // Under JPMS, Class.getResource() and ClassLoader.getResources() do not return the same URLs
-        URL url = cls.getResource(name);
+        URL url = RESOLVER.resolveResource(cls, name);
         if (url != null && maxLength == 1) {
-            return new URL[] {url};
+            return new URL[] { url };
         }
 
         String path = "";
@@ -882,27 +885,64 @@ public class Loader {
             // This is the bootstrap class loader, let's try the system class loader instead
             classLoader = ClassLoader.getSystemClassLoader();
         }
-        Enumeration<URL> urls = classLoader.getResources(path + name);
+        Iterator<URL> urls = RESOLVER.resolveResources(classLoader, path + name);
         ArrayList<URL> array = new ArrayList<URL>();
         if (url != null) {
             array.add(url);
         }
-        while (url == null && !urls.hasMoreElements() && path.length() > 0) {
+        while (url == null && !urls.hasNext() && path.length() > 0) {
             int n = path.lastIndexOf('/', path.length() - 2);
             if (n >= 0) {
                 path = path.substring(0, n + 1);
             } else {
                 path = "";
             }
-            urls = classLoader.getResources(path + name);
+            urls = RESOLVER.resolveResources(classLoader, path + name);
         }
-        while (urls.hasMoreElements() && (maxLength < 0 || array.size() < maxLength)) {
-            url = urls.nextElement();
+        while (urls.hasNext() && (maxLength < 0 || array.size() < maxLength)) {
+            url = urls.next();
             if (!array.contains(url)) {
                 array.add(url);
             }
         }
         return array.toArray(new URL[array.size()]);
+    }
+
+    public interface ResourceResolver {
+
+        URL resolveResource(Class clazz, String name) throws IOException;
+
+        Iterator<URL> resolveResources(ClassLoader classLoader, String name) throws IOException;
+    }
+
+    private static final ResourceResolver RESOLVER;
+
+    static {
+        ServiceLoader<ResourceResolver> loader = ServiceLoader.load(ResourceResolver.class);
+        Iterator<ResourceResolver> resolvers = loader.iterator();
+        if (resolvers.hasNext()) {
+            RESOLVER = resolvers.next();
+        } else {
+            RESOLVER = new ResourceResolver() {
+                @Override
+                public URL resolveResource(Class clazz, String name) throws IOException {
+                    return clazz.getResource(name);
+                }
+
+                @Override
+                public Iterator<URL> resolveResources(ClassLoader classLoader, String name) throws IOException {
+                    return classLoader.getResources(name).asIterator(); // the default implementation
+                }
+            };
+        }
+        if (resolvers.hasNext()) {
+            System.out
+                    .println("WARNING: Multiple services registrations for " + ResourceResolver.class.getName() + ":");
+            System.out.println(" " + RESOLVER);
+            while (resolvers.hasNext()) {
+                System.out.println(resolvers.next());
+            }
+        }
     }
 
     /** User-specified cache directory set and returned by {@link #getCacheDir()}. */
