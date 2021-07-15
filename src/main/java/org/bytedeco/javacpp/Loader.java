@@ -55,12 +55,14 @@ import java.util.Properties;
 import java.util.WeakHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
 import org.bytedeco.javacpp.annotation.Cast;
 import org.bytedeco.javacpp.annotation.Name;
 import org.bytedeco.javacpp.annotation.Platform;
 import org.bytedeco.javacpp.annotation.Raw;
 import org.bytedeco.javacpp.tools.Builder;
 import org.bytedeco.javacpp.tools.Logger;
+import org.eclipse.osgi.storage.url.BundleURLConverter;
 
 /**
  * The Loader contains functionality to load native libraries, but also has a bit
@@ -862,7 +864,7 @@ public class Loader {
         }
 
         // Under JPMS, Class.getResource() and ClassLoader.getResources() do not return the same URLs
-        URL url = cls.getResource(name);
+        URL url = resolveBundleURL(cls.getResource(name));
         if (url != null && maxLength == 1) {
             return new URL[] {url};
         }
@@ -897,13 +899,47 @@ public class Loader {
             urls = classLoader.getResources(path + name);
         }
         while (urls.hasMoreElements() && (maxLength < 0 || array.size() < maxLength)) {
-            url = urls.nextElement();
+            url = resolveBundleURL(urls.nextElement());
             if (!array.contains(url)) {
                 array.add(url);
             }
         }
         return array.toArray(new URL[array.size()]);
     }
+    
+	private interface URLResolver {
+		URL resolve(URL url) throws IOException;
+	}
+
+    private static final URLResolver BUNDLE_URL_RESOLVER;
+
+	static {
+        URLResolver resolver;
+		try {
+			final BundleURLConverter bundleURLConverter = new BundleURLConverter();
+            resolver = new URLResolver() {
+				@Override
+				public URL resolve(URL url) {
+					try {
+						return bundleURLConverter.resolve(url);
+					} catch (IOException e) {
+						return url;
+					}
+				}
+			};
+		} catch (Throwable e) {
+            resolver = null;
+		}
+        BUNDLE_URL_RESOLVER = resolver;
+	}
+
+    private static URL resolveBundleURL(URL url) throws IOException {
+        if (url != null && BUNDLE_URL_RESOLVER != null) {
+            return BUNDLE_URL_RESOLVER.resolve(url);
+		} else {
+            return url;
+		}
+	}
 
     /** User-specified cache directory set and returned by {@link #getCacheDir()}. */
     static File cacheDir = null;
