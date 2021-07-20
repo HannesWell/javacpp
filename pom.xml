@@ -87,7 +87,7 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.13.1</version>
-      <optional>true</optional>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -352,6 +352,7 @@ Import-Package: \
 Require-Capability: \
  osgi.extender;filter:="(osgi.extender=osgi.serviceloader.processor)",\
  osgi.serviceloader;filter:="(osgi.serviceloader=org.bytedeco.javacpp.Loader$ResourceResolver)";resolution:=optional;cardinality:=multiple
+Eclipse-BundleShape: dir
           ]]></bnd>
             </configuration>
           </execution>
