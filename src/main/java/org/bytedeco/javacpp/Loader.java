@@ -63,8 +63,16 @@ import org.bytedeco.javacpp.annotation.Raw;
 import org.bytedeco.javacpp.tools.Builder;
 import org.bytedeco.javacpp.tools.Logger;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleListener;
 import org.osgi.framework.BundleReference;
+import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.Version;
+import org.osgi.framework.launch.Framework;
+import org.osgi.framework.wiring.BundleWiring;
+import org.osgi.framework.wiring.FrameworkWiring;
+import org.osgi.resource.Namespace;
 
 /**
  * The Loader contains functionality to load native libraries, but also has a bit
@@ -93,16 +101,56 @@ public class Loader {
         }
     };
 
+    private static final Map<String, Bundle> HOST_2_BUNDLE = new HashMap<String, Bundle>();
+
     private static final boolean IS_OSGI_RUNTIME;
     static {
         boolean isOSGI;
         try {
-            Bundle.class.getName();
+            Bundle loaderBundle = FrameworkUtil.getBundle(Loader.class);
+            if (loaderBundle != null) {
+                FrameworkWiring w;
+                Framework fwk = loaderBundle.adapt(Framework.class);
+                BundleContext context = loaderBundle.adapt(BundleContext.class);
+                BundleWiring wiring = loaderBundle.adapt(BundleWiring.class);
+                Namespace.class;
+                wiring.getRequiredWires(PLATFORM);
+                if (context != null) {
+                    for (Bundle bundle : context.getBundles()) {
+                        String bundleURLHost = bundle.getEntry(JarFile.MANIFEST_NAME).getHost();
+                        HOST_2_BUNDLE.put(bundleURLHost, bundle);
+                    }
+                    context.addBundleListener(new BundleListener() {
+                        @Override
+                        public void bundleChanged(BundleEvent event) {
+                            Bundle bundle = event.getBundle();
+                            String bundleURLHost = bundle.getEntry(JarFile.MANIFEST_NAME).getHost();
+                            switch (event.getType()) {
+                            case BundleEvent.RESOLVED:
+                                HOST_2_BUNDLE.put(bundleURLHost, bundle);
+                                break;
+                            case BundleEvent.UNRESOLVED:
+                                HOST_2_BUNDLE.remove(bundleURLHost);
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+                    });
+                }
+            }
             isOSGI = true;
         } catch (NoClassDefFoundError e) {
             isOSGI = false;
         }
         IS_OSGI_RUNTIME = isOSGI;
+    }
+
+    private static Bundle getContainerBundle(URL url) {
+        if (!IS_OSGI_RUNTIME) {
+            throw new IllegalStateException();
+        }
+        return HOST_2_BUNDLE.get(url.getHost());
     }
 
     public static class Detector {
@@ -817,13 +865,21 @@ public class Loader {
         }
         if (IS_OSGI_RUNTIME && cls != null) {
             long start = System.currentTimeMillis();
-            // TODO: check if the URL is connected to the given class, respectively obtain
-            // the bundle from the URL.
+            // TODO: try to check if the URL is connected to the given class?
             ClassLoader classLoader = cls.getClassLoader();
             if (classLoader instanceof BundleReference) {
                 Bundle bundle = ((BundleReference) classLoader).getBundle();
+//                BundleWiring wiring = bundle.adapt(BundleWiring.class);
                 String path = resourceURL.getPath();
+
+//                Collection<String> listResources = wiring.listResources(path, null,
+//                        BundleWiring.LISTRESOURCES_RECURSE | BundleWiring.LISTRESOURCES_LOCAL);
+
+//                List<URL> entryURLs = wiring.findEntries(path, null, BundleWiring.FINDENTRIES_RECURSE);
+
                 Enumeration<URL> entries = bundle.findEntries(path, null, true);
+//                Enumeration<String> entryPaths2 = bundle.getEntryPaths(path);
+
                 if (entries != null && entries.hasMoreElements()) { // a not empty directory
                     while (entries.hasMoreElements()) {
                         URL entry = entries.nextElement();

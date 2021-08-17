@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.bytedeco</groupId>
   <artifactId>javacpp</artifactId>
@@ -102,13 +104,20 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>osgi.annotation</artifactId>
-      <version>8.0.0</version>
+      <version>7.0.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>osgi.core</artifactId>
-      <version>8.0.0</version>
+      <version>7.0.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.eclipse.platform/org.eclipse.osgi -->
+    <dependency>
+      <groupId>org.eclipse.platform</groupId>
+      <artifactId>org.eclipse.osgi</artifactId>
+      <version>3.16.300</version>
       <scope>provided</scope>
     </dependency>
 
@@ -559,31 +568,31 @@ Import-Package: \
           <plugin>
             <artifactId>maven-invoker-plugin</artifactId>
             <version>3.2.0</version>
-              <configuration>
-                <cloneProjectsTo>${project.build.directory}/integration-test/projects</cloneProjectsTo>
-                <cloneClean>true</cloneClean>
-                <projectsDirectory>src/it/</projectsDirectory>
-                <streamLogs>true</streamLogs>
-                <!-- With a clean <localRepositoryPath/>, it needs to redownload everything on each run!
+            <configuration>
+              <cloneProjectsTo>${project.build.directory}/integration-test/projects</cloneProjectsTo>
+              <cloneClean>true</cloneClean>
+              <projectsDirectory>src/it/</projectsDirectory>
+              <streamLogs>true</streamLogs>
+              <!-- With a clean <localRepositoryPath/>, it needs to redownload everything on each run!
                 <localRepositoryPath>${project.build.directory}/integration-test/repo</localRepositoryPath> -->
-                <properties>
-                  <!-- <org.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener>warn</org.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener> -->
-                  <maven.compiler.source>1.7</maven.compiler.source>
-                  <maven.compiler.target>1.7</maven.compiler.target>
-                </properties>
+              <properties>
+                <!-- <org.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener>warn</org.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener> -->
+                <maven.compiler.source>1.7</maven.compiler.source>
+                <maven.compiler.target>1.7</maven.compiler.target>
+              </properties>
+              <goals>
+                <goal>verify</goal>
+              </goals>
+            </configuration>
+            <executions>
+              <execution>
+                <id>integration-test</id>
                 <goals>
-                  <goal>verify</goal>
+                  <goal>install</goal>
+                  <goal>run</goal>
                 </goals>
-              </configuration>
-              <executions>
-                <execution>
-                  <id>integration-test</id>
-                  <goals>
-                    <goal>install</goal>
-                    <goal>run</goal>
-                  </goals>
-                </execution>
-              </executions>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
@@ -603,7 +612,7 @@ Import-Package: \
         <pluginManagement>
           <plugins>
             <!--This plugin's configuration is used to store Eclipse m2e settings
-                only. It has no influence on the Maven build itself. -->
+              only. It has no influence on the Maven build itself. -->
             <plugin>
               <groupId>org.eclipse.m2e</groupId>
               <artifactId>lifecycle-mapping</artifactId>
@@ -612,11 +621,11 @@ Import-Package: \
                 <lifecycleMappingMetadata>
                   <pluginExecutions>
                     <!-- *********************************************** -->
-                    <!-- The Maven Dev Connector for Eclipse m2e is no   -->
-                    <!-- longer maintained. We copy the relevant part    -->
-                    <!-- of the lifecycle mapping for the                -->
-                    <!-- maven-plugin-plugin here.                       -->
-                    <!--                                                 -->
+                    <!-- The Maven Dev Connector for Eclipse m2e is no -->
+                    <!-- longer maintained. We copy the relevant part -->
+                    <!-- of the lifecycle mapping for the -->
+                    <!-- maven-plugin-plugin here. -->
+                    <!-- -->
                     <!-- See https://github.com/ifedorenko/com.ifedorenko.m2e.mavendev/blob/master/com.ifedorenko.m2e.mavendev/lifecycle-mapping-metadata.xml -->
                     <!-- *********************************************** -->
                     <pluginExecution>
