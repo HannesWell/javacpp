@@ -550,6 +550,8 @@ Import-Package: \
  !org.apache.maven.*,\
  sun.misc;resolution:=optional,\
  *
+Eclipse-PlatformFilter: (& (osgi.os=linux) (osgi.ws=gtk) (osgi.arch=x86_64))
+<!--TODO: convert into a general OSGi filter? java.ee or similar? and set the values for each platform -->
               ]]></bnd>
                 </configuration>
               </execution>
