@@ -176,8 +176,8 @@ public class Loader {
         p.put("platform.library.prefix", s.substring(0, i));
         p.put("platform.library.suffix", s.substring(i + 1));
         name = "properties/" + name + ".properties";
-        InputStream is = Loader.class.getResourceAsStream(name);
-        try {
+
+        try (InputStream is = Loader.class.getResourceAsStream(name);) {
             try {
                 p.load(new InputStreamReader(is));
             } catch (NoSuchMethodError e) {
@@ -185,8 +185,8 @@ public class Loader {
             }
         } catch (Exception e) {
             name = "properties/" + defaults + ".properties";
-            InputStream is2 = Loader.class.getResourceAsStream(name);
-            try {
+
+            try (InputStream is2 = Loader.class.getResourceAsStream(name)) {
                 try {
                     p.load(new InputStreamReader(is2));
                 } catch (NoSuchMethodError e2) {
@@ -194,25 +194,9 @@ public class Loader {
                 }
             } catch (Exception e2) {
                 // give up and return defaults
-            } finally {
-                try {
-                    if (is2 != null) {
-                        is2.close();
-                    }
-                } catch (IOException ex) {
-                    logger.error("Unable to close resource : " + ex.getMessage());
-                }
-            }
-        } finally {
-            try {
-                if (is != null) {
-                    is.close();
-                }
-            } catch (IOException ex) {
-                logger.error("Unable to close resource : " + ex.getMessage());
             }
         }
-        for (Map.Entry e : System.getProperties().entrySet()) {
+        for (Map.Entry<Object, Object> e : System.getProperties().entrySet()) {
             if (e.getKey() instanceof String && e.getValue() instanceof String) {
                 String key = (String)e.getKey();
                 String value = (String)e.getValue();
@@ -792,6 +776,7 @@ public class Loader {
                             String s = resourceURL.toString();
                             URL u = new URL(s.substring(0, s.indexOf("!/") + 2) + entryName);
                             // FIXME: check if directories have to be extracted again?!
+                            jarFile.getInputStream(entry);
                             file = extractResource(u, file, prefix, suffix);
                         }
                         file.setLastModified(entryTimestamp);
@@ -828,6 +813,10 @@ public class Loader {
         }
 
         InputStream is = urlConnection != null ? urlConnection.getInputStream() : null;
+        return extractFile(is, directoryOrFile, resourceURL, prefix, suffix);
+    }
+
+    private static File extractFile(InputStream is, File directoryOrFile, URL resourceURL, String prefix, String suffix) throws IOException {
         OutputStream os = null;
         if (is == null) {
             return null;
@@ -842,11 +831,8 @@ public class Loader {
                 File directory;
                 if (directoryOrFile.isDirectory()) {
                     directory = directoryOrFile;
-                    try {
-                        file = new File(directoryOrFile, new File(new URI(resourceURL.toString().split("#")[0])).getName());
-                    } catch (IllegalArgumentException | URISyntaxException ex) {
-                        file = new File(directoryOrFile, new File(resourceURL.getPath()).getName());
-                    }
+                    File file2 = extractBeforeFragmentPath(resourceURL);
+                    file = new File(directoryOrFile, file2.getName());
                 } else {
                     directory = directoryOrFile.getParentFile();
                     file = directoryOrFile;
@@ -878,6 +864,24 @@ public class Loader {
             }
         }
         return file;
+    }
+
+    private static File extractBeforeFragmentPath(URL resourceURL) {
+        File file2;
+        try {
+            file2 = new File(new URI(resourceURL.toString().split("#")[0]));
+        } catch (IllegalArgumentException | URISyntaxException ex) {
+            file2 = new File(resourceURL.getPath());
+        }
+        return file2;
+    }
+
+    private static File extractFragmentPath2(URI uri) {
+        try {
+            return new File(new URI(uri.toString().split("#")[0]));
+        } catch (IllegalArgumentException | URISyntaxException e) {
+            return new File(uri.getPath());
+        }
     }
 
     private static boolean isCacheFileCurrent(File file, long entrySize, long entryTimestamp) throws IOException {
@@ -1656,11 +1660,7 @@ public class Loader {
                             file = f;
                         } else {
                             // ... else try to load directly as some libraries do not like being renamed ...
-                            try {
-                                file = new File(new URI(uri.toString().split("#")[0]));
-                            } catch (IllegalArgumentException | URISyntaxException e) {
-                                file = new File(uri.getPath());
-                            }
+                            file = extractFragmentPath2(uri);
                         }
                     } catch (Exception exc2) {
                         // ... (or give up) and ...
@@ -1820,6 +1820,7 @@ public class Loader {
             classStack.get().pop();
         }
     }
+
 
     /**
      * Creates a version-less symbolic link to a library file, if needed.
