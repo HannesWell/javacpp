@@ -58,14 +58,14 @@ public class OSGiBundleResourceLoader {
         return IS_OSGI_RUNTIME;
     }
 
-    public static String getOSGiContainerBundleName(URL resourceURL) {
+    public static String getOSGiContainerBundleName(URL url) {
         requireOSGi();
-        return OSGiEnvironmentLoader.getContainerBundleName(resourceURL);
+        return OSGiEnvironmentLoader.getContainerBundleName(url);
     }
 
-    public static Enumeration<URL> getOSGiBundleDirectoryContent(URL resourceURL) {
+    public static Enumeration<URL> getOSGiBundleDirectoryContent(URL url) {
         requireOSGi();
-        return OSGiEnvironmentLoader.getBundleDirectoryContent(resourceURL);
+        return OSGiEnvironmentLoader.getBundleDirectoryContent(url);
     }
 
     public static URL getOSGiClassResource(Class<?> c, String name) {
@@ -91,8 +91,8 @@ public class OSGiBundleResourceLoader {
         private static final ReadWriteLock LOCK = new ReentrantReadWriteLock();
         private static final WeakHashMap<URL, WeakReference<Bundle>> URL_TO_BUNDLE = new WeakHashMap<>();
 
-        private static void associateURLtoBundle(URL resource, Bundle bundle) {
-            URL_TO_BUNDLE.put(resource, new WeakReference<>(bundle));
+        private static void associateURLtoBundle(URL url, Bundle bundle) {
+            URL_TO_BUNDLE.put(url, new WeakReference<>(bundle));
         }
 
         private static Bundle getContainerBundle(URL url) {
@@ -141,8 +141,8 @@ public class OSGiBundleResourceLoader {
             return resources;
         }
 
-        private static String getContainerBundleName(URL resourceURL) {
-            Bundle bundle = getContainerBundle(resourceURL);
+        private static String getContainerBundleName(URL url) {
+            Bundle bundle = getContainerBundle(url);
             if (bundle != null) {
                 Version v = bundle.getVersion();
                 String version = v.getMajor() + "." + v.getMinor() + "." + v.getMicro(); // skip qualifier
@@ -151,10 +151,10 @@ public class OSGiBundleResourceLoader {
             return null;
         }
 
-        private static Enumeration<URL> getBundleDirectoryContent(URL resourceURL) {
-            Bundle bundle = getContainerBundle(resourceURL);
+        private static Enumeration<URL> getBundleDirectoryContent(URL url) {
+            Bundle bundle = getContainerBundle(url);
             if (bundle != null) {
-                return bundle.findEntries(resourceURL.getPath(), null, true);
+                return bundle.findEntries(url.getPath(), null, true);
             }
             return null;
         }
